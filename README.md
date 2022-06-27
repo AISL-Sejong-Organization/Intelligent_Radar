@@ -246,3 +246,23 @@ Here you find the [disclaimer](https://acconeer-python-exploration.readthedocs.i
 ## FAQ and common issues
 
 We've moved the FAQ to [Read the Docs](https://acconeer-python-exploration.readthedocs.io/en/latest/faq.html).
+
+## Sejong Univ
+
+Run iq_receiver.py
+'''
+python ./gui/service_modules/iq_receiver.py -s <the sensoer ip address> --sensor <sesor id>
+'''
+
+Run iq_transfer.py
+
+If you want save data files,
+'''
+python ./gui/service_modules/iq_transfer.py -s
+'''
+than type file name.
+
+If you want predict,
+'''
+python ./gui/service_modules/iq_transfer.py -p
+'''
