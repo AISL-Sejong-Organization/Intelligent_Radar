@@ -1,0 +1,59 @@
+- class: Conv2D
+  is_active: true
+  name: conv2d
+  params:
+    activation: relu
+    filters: 32
+    kernel_size:
+    - 3
+    - 3
+    padding: valid
+    strides:
+    - 1
+    - 1
+- class: Conv2D
+  is_active: true
+  name: conv2d
+  params:
+    activation: relu
+    filters: 32
+    kernel_size:
+    - 3
+    - 3
+    padding: valid
+    strides:
+    - 1
+    - 1
+- class: MaxPool2D
+  is_active: true
+  name: max_pooling2d
+  params:
+    pool_size:
+    - 2
+    - 2
+- class: Dropout
+  is_active: true
+  name: dropout
+  params:
+    rate: 0.25
+- class: Flatten
+  is_active: true
+  name: flatten
+  params: null
+- class: Dense
+  is_active: true
+  name: dense
+  params:
+    activation: softmax
+    units: 2
+- class: Dropout
+  is_active: true
+  name: dropout
+  params:
+    rate: 0.25
+- class: Dense
+  is_active: true
+  name: dense
+  params:
+    activation: softmax
+    units: 2

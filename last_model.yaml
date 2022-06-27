@@ -1,0 +1,24 @@
+- class: Dense
+  name: dense
+  params:
+    activation: relu
+    units: 4
+- class: Dense
+  name: dense
+  params:
+    activation: relu
+    units: 36
+- class: Dense
+  name: dense
+  params:
+    activation: relu
+    units: 54
+- class: Dropout
+  name: dropout
+  params:
+    rate: 0.2
+- class: Dense
+  name: dense
+  params:
+    activation: softmax
+    units: 4
