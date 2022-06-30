@@ -251,7 +251,7 @@ We've moved the FAQ to [Read the Docs](https://acconeer-python-exploration.readt
 
 Run iq_receiver.py
 ```
-python ./gui/service_modules/iq_receiver.py -s <the sensoer ip address> --sensor <sesor id>
+python ./gui/service_modules/iq_receiver.py -s <the sensoer ip address> --sensor <sensor id>
 ```
 
 Run iq_transfer.py
