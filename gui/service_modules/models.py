@@ -3,6 +3,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import layers, models
 from classifier import preprocessing as prep
+import numpy as np
 
 def VGG_branch(X):
     
@@ -73,7 +74,7 @@ class ResidualUnit(tf.keras.Model):
         if filter_in == filter_out:
             self.identity = lambda x: x
         else:
-            self.identity = keras.layers.Conv1D(filter_out, (1,1), padding = 'same')
+            self.identity = keras.layers.Conv1D(filter_out, 1, padding = 'same')
         
     def call(self, x, training=False, mask = None):
         h = self.bn1(x, training=training)
@@ -101,23 +102,24 @@ class ResnetLayer(tf.keras.Model):
 class AP_ResNet(tf.keras.Model):
     def __init__(self):
         super(AP_ResNet, self).__init__()
-        self.conv1 = tf.keras.layers.Conv1D(8, (3,3), padding='same', activation='relu') #28x28x8
-        self.res1 = ResnetLayer(8, (16, 16), (3,3)) # 28X28X16
+        self.conv1 = tf.keras.layers.Conv1D(8, 3, padding='same', activation='relu') #28x28x8
+        self.res1 = ResnetLayer(8, (16, 16), 3) # 28X28X16
         self.pool1 = tf.keras.layers.MaxPool1D(2)
 
-        self.res2 = ResnetLayer(16, (32, 32), (3,3))
+        self.res2 = ResnetLayer(16, (32, 32), 3)
         self.pool2 = tf.keras.layers.MaxPool1D(2)
 
-        self.res3 = ResnetLayer(32, (64, 64), (3, 3))
+        self.res3 = ResnetLayer(32, (64, 64), 1)
         
         self.flatten = tf.keras.layers.Flatten()
         self.dense1 = tf.keras.layers.Dense(128, activation = 'relu')
-        self.dense2 = tf.keras.layers.Dense(10, activation = 'softmax')
+        self.dense2 = tf.keras.layers.Dense(5, activation = 'softmax')
 
     def call(self, x, training=False, mask=None):
         amp = x[:, 0, :]
         phs = x[:, 1, :]
-
+        amp = tf.expand_dims(amp, axis = 2)
+        phs = tf.expand_dims(phs, axis = 2)
         amp = self.conv1(amp)
         amp = self.res1(amp)
         amp = self.pool1(amp)
@@ -143,27 +145,25 @@ class AP_ResNet(tf.keras.Model):
 class ResNet(tf.keras.Model):
     def __init__(self):
         super(ResNet, self).__init__()
-        self.conv1 = tf.keras.layers.Conv1D(8, (3,3), padding='same', activation='relu') #28x28x8
-        self.res1 = ResnetLayer(8, (16, 16), (3,3)) # 28X28X16
+        self.conv1 = tf.keras.layers.Conv1D(8, 3, padding='same', activation='relu') #28x28x8
+        self.res1 = ResnetLayer(8, (16, 16), 3) # 28X28X16
         self.pool1 = tf.keras.layers.MaxPool1D(2)
 
-        self.res2 = ResnetLayer(16, (32, 32), (3,3))
+        self.res2 = ResnetLayer(16, (32, 32), 3)
         self.pool2 = tf.keras.layers.MaxPool1D(2)
 
-        self.res3 = ResnetLayer(32, (64, 64), (3, 3))
+        self.res3 = ResnetLayer(32, (64, 64), 3)
         
         self.flatten = tf.keras.layers.Flatten()
         self.dense1 = tf.keras.layers.Dense(128, activation = 'relu')
-        self.dense2 = tf.keras.layers.Dense(10, activation = 'softmax')
+        self.dense2 = tf.keras.layers.Dense(5, activation = 'softmax')
 
     def call(self, x, training=False, mask=None):
         amp = x[:, 0, :]
-        phs = x[:, 1, :]
-        print('0 : ',amp.shape)
+        # phs = x[:, 1, :]
+        amp = tf.expand_dims(amp, axis = 2)
         amp = self.conv1(amp)
-        print('1 : ',amp.shape)
         amp = self.res1(amp)
-        print('2 : ',amp.shape)
         amp = self.pool1(amp)
         amp = self.res2(amp)
         amp = self.pool2(amp)
