@@ -5,6 +5,9 @@ venv/
 env/
 .tox/
 
+#Mac
+*.DS_Store
+
 # setup.py
 dist/
 build/

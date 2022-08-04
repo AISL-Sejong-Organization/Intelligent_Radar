@@ -159,9 +159,11 @@ class ResNet(tf.keras.Model):
     def call(self, x, training=False, mask=None):
         amp = x[:, 0, :]
         phs = x[:, 1, :]
-
+        print('0 : ',amp.shape)
         amp = self.conv1(amp)
+        print('1 : ',amp.shape)
         amp = self.res1(amp)
+        print('2 : ',amp.shape)
         amp = self.pool1(amp)
         amp = self.res2(amp)
         amp = self.pool2(amp)
