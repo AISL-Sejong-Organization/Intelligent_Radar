@@ -174,3 +174,91 @@ class ResNet(tf.keras.Model):
         out = self.dense2(out)
 
         return out
+
+class ResidualUnit2D(tf.keras.Model):
+    def __init__(self, filter_in, filter_out, kernel_size):
+        super(ResidualUnit2D, self).__init__()
+
+        self.bn1 = keras.layers.BatchNormalization()
+        self.conv1 = keras.layers.Conv2D(filter_out, kernel_size, padding='same')
+        self.bn2 = keras.layers.BatchNormalization()
+        self.conv2 = keras.layers.Conv2D(filter_out, kernel_size, padding='same')
+
+        if filter_in == filter_out:
+            self.identity = lambda x: x
+        else:
+            self.identity = keras.layers.Conv2D(filter_out, 1, padding = 'same')
+        
+    def call(self, x, training=False, mask = None):
+        h = self.bn1(x, training=training)
+        h = tf.nn.relu(h)
+        h = self.conv1(h)
+
+        h = self.bn2(h, training=training)
+        h = tf.nn.relu(h)
+        h = self.conv2(h)
+        return self.identity(x) + h
+
+class ResnetLayer2D(tf.keras.Model):
+    def __init__(self, filter_in, filters, kernel_size):
+        super(ResnetLayer2D, self).__init__()
+        self.sequence = list()
+
+        for f_in, f_out in zip([filter_in] + list(filters), filters):
+            self.sequence.append(ResidualUnit2D(f_in, f_out, kernel_size))
+
+    def call(self, x, training=False , mask=None):
+        for unit in self.sequence:
+            x = unit(x, training=training)
+        return x
+
+class ResNetLSTM(tf.keras.Model):
+    def __init__(self):
+        super(ResNetLSTM, self).__init__()
+        self.conv1 = tf.keras.layers.Conv2D(8, (1,3), padding='same', activation='relu') #28x28x8
+        self.res1 = ResnetLayer2D(8, (16, 16), (1,3)) # 28X28X16
+        self.pool1 = tf.keras.layers.MaxPool2D((1,2))
+
+        self.res2 = ResnetLayer2D(16, (32, 32), (1,3))
+        self.pool2 = tf.keras.layers.MaxPool2D((1,2))
+
+        self.res3 = ResnetLayer2D(32, (64, 64), (1,3))
+        
+        self.flatten = tf.keras.layers.Flatten()
+        self.dense1 = tf.keras.layers.Dense(128, activation = 'relu')
+        self.dense2 = tf.keras.layers.Dense(5, activation = 'softmax')
+        
+        self.lstm1 = tf.keras.layers.LSTM(256, return_sequences=False , dropout = 0.8)
+        
+        self.reshape = tf.keras.layers.Reshape((-1, 64))
+
+        self.dropout1 = tf.keras.layers.Dropout(0.8)
+        self.dropout2 = tf.keras.layers.Dropout(0.8)
+
+    def call(self, x, training=False, mask=None):
+        # print('x shape',x.shape)
+        amp = x[:, :, 0, :]
+        # phs = x[:, 1, :]
+        # print(amp.shape)
+        amp = tf.expand_dims(amp, axis = -1)
+        amp = self.conv1(amp)
+        amp = self.res1(amp)
+        amp = self.dropout1(amp)
+        amp = self.pool1(amp)
+        amp = self.res2(amp)
+        amp = self.dropout1(amp)
+        amp = self.pool2(amp)
+        amp = self.res3(amp)
+        
+        amp = self.dropout1(amp)
+        amp = self.reshape(amp)
+        amp = self.lstm1(amp)
+        amp = self.flatten(amp)
+        amp = self.dropout2(amp)
+        
+        
+        out = self.dense1(amp)
+        out = self.dropout2(out)
+        out = self.dense2(out)
+
+        return out
