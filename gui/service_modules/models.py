@@ -143,7 +143,7 @@ class AP_ResNet(tf.keras.Model):
         return out
 
 class ResNet(tf.keras.Model):
-    def __init__(self):
+    def __init__(self, dropout):
         super(ResNet, self).__init__()
         self.conv1 = tf.keras.layers.Conv1D(8, 3, padding='same', activation='relu') #28x28x8
         self.res1 = ResnetLayer(8, (16, 16), 3) # 28X28X16
@@ -155,6 +155,8 @@ class ResNet(tf.keras.Model):
         self.res3 = ResnetLayer(32, (64, 64), 3)
         
         self.flatten = tf.keras.layers.Flatten()
+        self.dropout1 = tf.keras.layers.Dropout(dropout)
+        self.dropout2 = tf.keras.layers.Dropout(0.8)
         self.dense1 = tf.keras.layers.Dense(128, activation = 'relu')
         self.dense2 = tf.keras.layers.Dense(5, activation = 'softmax')
 
@@ -164,16 +166,19 @@ class ResNet(tf.keras.Model):
         amp = tf.expand_dims(amp, axis = 2)
         amp = self.conv1(amp)
         amp = self.res1(amp)
+        amp = self.dropout1(amp)
         amp = self.pool1(amp)
         amp = self.res2(amp)
+        amp = self.dropout1(amp)
         amp = self.pool2(amp)
         amp = self.res3(amp)
         amp = self.flatten(amp)
+        amp = self.dropout1(amp)
+        amp = self.dense1(amp)
+        amp = self.dropout1(amp)
+        amp = self.dense2(amp)
 
-        out = self.dense1(amp)
-        out = self.dense2(out)
-
-        return out
+        return amp
 
 class ResidualUnit2D(tf.keras.Model):
     def __init__(self, filter_in, filter_out, kernel_size):
@@ -213,26 +218,27 @@ class ResnetLayer2D(tf.keras.Model):
         return x
 
 class ResNetLSTM(tf.keras.Model):
-    def __init__(self):
+    def __init__(self, dropout = 0):
         super(ResNetLSTM, self).__init__()
-        self.conv1 = tf.keras.layers.Conv2D(8, (1,3), padding='same', activation='relu') #28x28x8
-        self.res1 = ResnetLayer2D(8, (16, 16), (1,3)) # 28X28X16
-        self.pool1 = tf.keras.layers.MaxPool2D((1,2))
+        self.conv1 = tf.keras.layers.Conv2D(8, (3,3), padding='same', activation='relu') #28x28x8
+        self.res1 = ResnetLayer2D(8, (16, 16), (3,3)) # 28X28X16
+        self.pool1 = tf.keras.layers.MaxPool2D((2,2))
 
-        self.res2 = ResnetLayer2D(16, (32, 32), (1,3))
-        self.pool2 = tf.keras.layers.MaxPool2D((1,2))
+        self.res2 = ResnetLayer2D(16, (32, 32), (3,3))
+        self.pool2 = tf.keras.layers.MaxPool2D((2,2))
 
-        self.res3 = ResnetLayer2D(32, (64, 64), (1,3))
+        self.res3 = ResnetLayer2D(32, (64, 64), (3,3))
         
         self.flatten = tf.keras.layers.Flatten()
-        self.dense1 = tf.keras.layers.Dense(128, activation = 'relu')
-        self.dense2 = tf.keras.layers.Dense(5, activation = 'softmax')
+        self.dense1 = tf.keras.layers.Dense(1024, activation = 'relu')
+        self.dense2 = tf.keras.layers.Dense(512, activation = 'relu')
+        self.dense3 = tf.keras.layers.Dense(5, activation = 'softmax')
         
         self.lstm1 = tf.keras.layers.LSTM(256, return_sequences=False , dropout = 0.8)
         
         self.reshape = tf.keras.layers.Reshape((-1, 64))
 
-        self.dropout1 = tf.keras.layers.Dropout(0.8)
+        self.dropout1 = tf.keras.layers.Dropout(dropout)
         self.dropout2 = tf.keras.layers.Dropout(0.8)
 
     def call(self, x, training=False, mask=None):
@@ -254,11 +260,138 @@ class ResNetLSTM(tf.keras.Model):
         amp = self.reshape(amp)
         amp = self.lstm1(amp)
         amp = self.flatten(amp)
-        amp = self.dropout2(amp)
+        amp = self.dropout1(amp)
         
         
         out = self.dense1(amp)
-        out = self.dropout2(out)
+        out = self.dropout1(out)
         out = self.dense2(out)
-
+        out = self.dense3(out)
         return out
+
+class ConvLSTM(tf.keras.Model):
+    def __init__(self):
+        super(ConvLSTM, self).__init__()
+        self.convlstm1 = tf.keras.layers.ConvLSTM1D(64, 3, activation = 'relu', padding = 'same', return_sequences = True)
+        self.convlstm2 = tf.keras.layers.ConvLSTM1D(128, 3, activation = 'relu', padding = 'same', return_sequences = True)
+        self.convlstm3 = tf.keras.layers.ConvLSTM1D(256, 3, activation = 'relu', padding = 'same')
+
+        self.bn1 = tf.keras.layers.BatchNormalization()
+        self.bn2 = tf.keras.layers.BatchNormalization()
+        self.bn3 = tf.keras.layers.BatchNormalization()
+        self.flatten = tf.keras.layers.Flatten()
+
+        self.dense1 = tf.keras.layers.Dense(1024, activation = 'relu')
+        self.dense2 = tf.keras.layers.Dense(512, activation = 'relu')
+        self.dense3 = tf.keras.layers.Dense(5, activation = 'softmax')
+
+        self.dropout1 = tf.keras.layers.Dropout(0.5)
+        self.dropout2 = tf.keras.layers.Dropout(0.5)
+        self.dropout3 = tf.keras.layers.Dropout(0.5)
+
+    def call(self, x, training=False, mask=None):
+        # amp = x[:, :, 0, :]
+        # amp = tf.expand_dims(x, axis = -1)
+        amp = x
+        amp = tf.expand_dims(amp, axis = -1)
+        # print(amp.shape)
+        amp = self.convlstm1(amp)
+        amp = self.bn1(amp)
+        amp = self.convlstm2(amp)
+        amp = self.bn2(amp)
+        amp = self.convlstm3(amp)
+        amp = self.bn3(amp)
+        amp = self.flatten(amp)
+        # amp = self.dropout1(amp)
+        amp = self.dense1(amp)
+        # amp = self.dropout2(amp)
+        amp = self.dense2(amp)
+        # amp = self.dropout3(amp)
+        amp = self.dense3(amp)
+
+        return amp
+
+class ConvLSTM_dropout(tf.keras.Model):
+    def __init__(self):
+        super(ConvLSTM_dropout, self).__init__()
+        self.convlstm1 = tf.keras.layers.ConvLSTM1D(64, 3, activation = 'relu', padding = 'same', return_sequences = True)
+        self.convlstm2 = tf.keras.layers.ConvLSTM1D(128, 3, activation = 'relu', padding = 'same', return_sequences = True)
+        self.convlstm3 = tf.keras.layers.ConvLSTM1D(256, 3, activation = 'relu', padding = 'same')
+
+        self.bn1 = tf.keras.layers.BatchNormalization()
+        self.bn2 = tf.keras.layers.BatchNormalization()
+        self.bn3 = tf.keras.layers.BatchNormalization()
+        self.flatten = tf.keras.layers.Flatten()
+
+        self.dense1 = tf.keras.layers.Dense(2048, activation = 'relu')
+        self.dense2 = tf.keras.layers.Dense(2048, activation = 'relu')
+        self.dense3 = tf.keras.layers.Dense(5, activation = 'softmax')
+
+        self.dropout1 = tf.keras.layers.Dropout(0.5)
+        self.dropout2 = tf.keras.layers.Dropout(0.5)
+        self.dropout3 = tf.keras.layers.Dropout(0.5)
+        self.dropout4 = tf.keras.layers.Dropout(0.5)
+
+    def call(self, x, training=False, mask=None):
+        # amp = x[:, :, 0, :]
+        # amp = tf.expand_dims(x, axis = -1)
+        amp = x
+        amp = tf.expand_dims(amp, axis = -1)
+        # print(amp.shape)
+        amp = self.convlstm1(amp)
+        amp = self.bn1(amp)
+        # amp = self.dropout1(amp)
+        amp = self.convlstm2(amp)
+        amp = self.bn2(amp)
+        # amp = self.dropout2(amp)
+        amp = self.convlstm3(amp)
+        amp = self.bn3(amp)
+        amp = self.flatten(amp)
+        amp = self.dropout3(amp)
+        amp = self.dense1(amp)
+        amp = self.dropout4(amp)
+        amp = self.dense2(amp)
+        # amp = self.dropout3(amp)
+        amp = self.dense3(amp)
+
+        return amp
+
+
+def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
+    # Normalization and Attention
+    x = layers.LayerNormalization(epsilon=1e-6)(inputs)
+    x = layers.MultiHeadAttention(
+        key_dim=head_size, num_heads=num_heads, dropout=dropout
+    )(x, x)
+    x = layers.Dropout(dropout)(x)
+    res = x + inputs
+
+    # Feed Forward Part
+    x = layers.LayerNormalization(epsilon=1e-6)(res)
+    x = layers.Conv1D(filters=ff_dim, kernel_size=1, activation="relu")(x)
+    x = layers.Dropout(dropout)(x)
+    x = layers.Conv1D(filters=inputs.shape[-1], kernel_size=1)(x)
+    return x + res
+
+def build_transformer_model(
+    input_shape,
+    head_size,
+    num_heads,
+    ff_dim,
+    num_transformer_blocks,
+    mlp_units,
+    dropout=0,
+    mlp_dropout=0,
+    n_classes = 5,
+):
+    inputs = keras.Input(shape=input_shape)
+    x = inputs
+    for _ in range(num_transformer_blocks):
+        x = transformer_encoder(x, head_size, num_heads, ff_dim, dropout)
+
+    x = layers.GlobalAveragePooling1D(data_format="channels_first")(x)
+    for dim in mlp_units:
+        x = layers.Dense(dim, activation="relu")(x)
+        x = layers.Dropout(mlp_dropout)(x)
+    outputs = layers.Dense(n_classes, activation="softmax")(x)
+    return keras.Model(inputs, outputs)

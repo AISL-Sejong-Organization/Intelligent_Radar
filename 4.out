@@ -1,0 +1,7 @@
+2022-08-13 05:57:49.719422: I tensorflow/core/util/util.cc:169] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+Traceback (most recent call last):
+  File "gui/service_modules/training_road_convlstm3.py", line 111, in <module>
+    X, y = readNpy(dir_path)
+  File "gui/service_modules/training_road_convlstm3.py", line 53, in readNpy
+    for dir in os.listdir(dir_path):
+FileNotFoundError: [Errno 2] No such file or directory: './road_data'
