@@ -64,6 +64,19 @@ class ExampleArgumentParser(ArgumentParser):
             nargs=num_sens,
             help="the sensor(s) to use (default: 1)",
         )
+        self.add_argument(
+            '-save',
+            '--save',
+            action='stor_true'
+        )
+
+        self.add_argument(
+            '-n',
+            '--name',
+            action = 'store',
+            metavar = 'filename',
+            help='the name of filename'
+        )
 
         verbosity_group = self.add_mutually_exclusive_group(required=False)
         verbosity_group.add_argument(

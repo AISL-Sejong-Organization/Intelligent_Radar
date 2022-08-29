@@ -21,6 +21,7 @@ def main():
     else:
         port = args.serial_port or utils.autodetect_serial_port()
         client = clients.UARTClient(port)
+    # client = clients.SocketClient('localhost')
 
     client.squeeze = False
 
@@ -49,11 +50,11 @@ def main():
             info, data = client.get_next()
             plot_data = processor.process(data)
 
-            # data = plot_data['data'].encode()
-            stringData = plot_data['data'].tostring()
-            length = len(stringData)
-            client_socket.sendall(length.to_bytes(4, byteorder="little"))
-            client_socket.sendall(stringData)
+            data = plot_data['data'].tobytes()
+            # Data = plot_data['data']
+            datalen = len(data)
+            client_socket.sendall(datalen.to_bytes(4, byteorder='little'))
+            client_socket.sendall(data)
 
             msg_len_bytes = client_socket.recv(4)
             msg_len = int.from_bytes(msg_len_bytes, "little")
@@ -81,9 +82,9 @@ def main():
 def get_sensor_config():
     config = configs.IQServiceConfig()
     # config.range_interval = [0.2, 0.8]
-    config.range_interval = [0.08, 0.16]
+    config.range_interval = [0.1, 0.2]
     # config.update_rate = 30
-    config.update_rate = 15
+    config.update_rate = 60
     return config
 
 
