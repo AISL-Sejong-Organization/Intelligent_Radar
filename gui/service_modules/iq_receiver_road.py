@@ -109,10 +109,7 @@ class ProcessingConfig(configbase.ProcessingConfig):
         updateable=True,
         order=10,
     )
-
-
 get_processing_config = ProcessingConfig
-
 
 class Processor:
     def __init__(self, sensor_config, processing_config, session_info):

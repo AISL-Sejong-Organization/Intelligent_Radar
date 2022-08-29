@@ -1,3 +1,4 @@
+from lib2to3.pgen2 import driver
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -395,3 +396,23 @@ def build_transformer_model(
         x = layers.Dropout(mlp_dropout)(x)
     outputs = layers.Dense(n_classes, activation="softmax")(x)
     return keras.Model(inputs, outputs)
+
+class ResNet_CNN(tf.keras.Model):
+    def __init__(self):
+        super(ResNet_CNN, self).__init__()
+        self.basemodel = tf.keras.applications.ResNet152V2(
+            include_top = False,
+            weights = 'imagenet',
+            input_shape = (50, 414, 3),
+        )
+        self.conv1 = tf.kears.layers.Conv2D(3, (1,1), padding='valid', activation = 'relu')
+        self.fc1 = tf.keras.layers.Dense(5, activation = 'softmax')
+
+        self.dropout1 = tf.keras.layers.Dropout(0.8)
+
+    def call(self, x, training=False, mask=None):
+        x = self.conv1(x)
+        x = self.basemodel(x)
+        x = self.dropout1(x)
+        x = self.fc1(x)
+        return out
