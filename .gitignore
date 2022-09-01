@@ -5,6 +5,9 @@ venv/
 env/
 .tox/
 
+#Data
+*.zip
+
 #Mac
 *.DS_Store
 

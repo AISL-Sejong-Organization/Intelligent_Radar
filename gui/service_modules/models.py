@@ -398,21 +398,62 @@ def build_transformer_model(
     return keras.Model(inputs, outputs)
 
 class ResNet_CNN(tf.keras.Model):
-    def __init__(self):
+    def __init__(self, weight=None):
         super(ResNet_CNN, self).__init__()
         self.basemodel = tf.keras.applications.ResNet152V2(
             include_top = False,
-            weights = 'imagenet',
-            input_shape = (50, 414, 3),
+            weights = weight,
+            input_shape = (90, 208, 3),
         )
-        self.conv1 = tf.kears.layers.Conv2D(3, (1,1), padding='valid', activation = 'relu')
-        self.fc1 = tf.keras.layers.Dense(5, activation = 'softmax')
+        self.conv1 = tf.keras.layers.Conv2D(3, (1,1), padding='valid', activation = 'relu')
+        self.fc1 = tf.keras.layers.Dense(1024, activation = 'relu')
+        self.fc2 = tf.keras.layers.Dense(1024, activation = 'relu')
+        self.fc3 = tf.keras.layers.Dense(4, activation = 'softmax')
 
-        self.dropout1 = tf.keras.layers.Dropout(0.8)
+        self.flatten = tf.keras.layers.Flatten()
 
+        self.dropout1 = tf.keras.layers.Dropout(0.5)
+        self.dropout2 = tf.keras.layers.Dropout(0.5)
+        self.dropout3 = tf.keras.layers.Dropout(0.5)
     def call(self, x, training=False, mask=None):
         x = self.conv1(x)
         x = self.basemodel(x)
+        x = self.flatten(x)
         x = self.dropout1(x)
         x = self.fc1(x)
-        return out
+        x = self.dropout2(x)
+        x = self.fc2(x)
+        x = self.dropout3(x)
+        x = self.fc3(x)
+        return x
+
+class VGG_CNN(tf.keras.Model):
+    def __init__(self, weight=None):
+        super(VGG_CNN, self).__init__()
+        self.basemodel = tf.keras.applications.vgg16.VGG16(
+            include_top = False,
+            weights = weight,
+            input_shape = (90, 208, 3),
+        )
+        self.conv1 = tf.keras.layers.Conv2D(3, (1,1), padding='valid', activation = 'relu')
+        self.fc1 = tf.keras.layers.Dense(1024, activation = 'relu')
+        self.fc2 = tf.keras.layers.Dense(1024, activation = 'relu')
+        self.fc3 = tf.keras.layers.Dense(4, activation = 'softmax')
+
+        self.flatten = tf.keras.layers.Flatten()
+
+        self.dropout1 = tf.keras.layers.Dropout(0.5)
+        self.dropout2 = tf.keras.layers.Dropout(0.5)
+        self.dropout3 = tf.keras.layers.Dropout(0.5)
+    def call(self, x, training=False, mask=None):
+        x = self.conv1(x)
+        x = self.basemodel(x)
+        x = self.flatten(x)
+        x = self.dropout1(x)
+        x = self.fc1(x)
+        x = self.dropout2(x)
+        x = self.fc2(x)
+        x = self.dropout3(x)
+        x = self.fc3(x)
+        return x
+
