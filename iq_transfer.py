@@ -175,6 +175,8 @@ def Transfer(queue):
                 print('Transfer')
 
                 send_data = queue.pop()
+
+                print(send_data.shape)
                 data = {
                 'signature_name': "serving_default",
                 'instances': send_data.tolist()
@@ -185,7 +187,7 @@ def Transfer(queue):
                 url = "http://{0}:{1}/v1/models/{2}/versions/{3}:predict".format(TF_IP, TF_PORT,  model_name, version)
                 headers = {"content-type": "application/json"}
                 json_response = requests.post(url, data=payload, headers=headers)
-                predictions = json.loads(json_response.text)['predictions']
+                # predictions = json.loads(json_response.text)['predictions']
 
         except:
             print('transfer error')
@@ -232,6 +234,7 @@ def main(data_queue, feature_queue, save, transfer, model_path, predict):
         th3.join()
         th4.join()
         th5.join()
+        th6.join()
     except:
         pass
 
