@@ -4,9 +4,11 @@ from collections import deque
 import argparse
 from math import pi
 import tensorflow as tf
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import copy
 import os
+import json
+import requests
 
 # HOST = 'localhost'
 PORT = 19960
@@ -14,6 +16,11 @@ DATALENGTH = 10
 FRAMENUM = 5
 INITIALDATA = None
 FLAG = True
+
+TF_IP = '203.250.148.120'
+TF_PORT = '20529'
+MODEL_NAME = 'AGV_test'
+
 
 # label2idx_Dict = {
 #                 'empty' : 0,
@@ -78,8 +85,7 @@ def preprocess_data(data_queue, feature_queue):
                             feature_data.append(temp)
                             cnt += 1
                 feature_mean_data = np.mean(feature_data, axis=0)
-                # print(feature_mean_data.shape)
-                feature_queue.appendleft(feature_mean_data - INITIALDATA)
+                feature_queue.appendleft(np.abs(feature_mean_data - INITIALDATA))
     except:
         pass
 
@@ -140,27 +146,7 @@ def saver(data_len, queue):
             else:
                 print('not save')
 
-def seperater(data):
-    # print('seperater')
-    # data = list()
-    # data = np.array(data)
-    # while True:
-    pre_data = np.array(copy.deepcopy(data))
-    amp = np.abs(pre_data)
-    # amp = amp / 1720.8725345010303
-    phs = np.angle(pre_data)
-    # phs = (phs - (- pi)) / (pi - (- pi))
-    sin = np.sin(phs)
-    sin = (sin + 1) / 2
-    amp = np.expand_dims(amp, axis = 0)
-    sin = np.expand_dims(sin ,axis = 0)
-    # print('amp', amp.shape)
-    # print('phs', phs.shape)
-    seperated_data = np.concatenate([amp, sin], axis = 0)
-    # print('seperater')
-    return np.array(seperated_data)
-
-def process(queue, model):
+def Predict(queue, model):
     global FLAG
     # try:
     while True:
@@ -169,10 +155,9 @@ def process(queue, model):
             if queue:
                 print('predict')
                 pre_data = queue.pop()
-                data = seperater(pre_data)
+                data = np.abs(pre_data)
                 FLAG = False
                 data = np.expand_dims(data, axis=0)
-
                 predict = model.predict({"amplitude" : data[:,0,:], "phase": data[:,1,:]}, verbose = 0)
                 predict_dec = np.argmax(predict)
                 text = idx2label_Dict[predict_dec]
@@ -180,7 +165,22 @@ def process(queue, model):
         except:
             print('error')
 
-def main(data_queue, feature_queue, save, model_path, predict):
+
+def Transfer(queue):
+    send_data = queue.pop()
+    data = {
+    'signature_name': "serving_default",
+    'instances': send_data.tolist()
+    }
+    payload = json.dumps(data)
+    model_name = MODEL_NAME
+    version = '2'
+    url = "http://{0}:{1}/v1/models/{2}/versions/{3}:predict".format(TF_IP, TF_PORT,  model_name, version)
+    headers = {"content-type": "application/json"}
+    json_response = requests.post(url, data=payload, headers=headers)
+    predictions = json.loads(json_response.text)['predictions']
+
+def main(data_queue, feature_queue, save, transfer, model_path, predict):
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -194,12 +194,16 @@ def main(data_queue, feature_queue, save, model_path, predict):
         if predict:
             print('start predict')
             model = tf.keras.models.load_model(model_path)
-            th3 = threading.Thread(target = process, args = (feature_queue, model))
+            th3 = threading.Thread(target = Predict, args = (feature_queue, model))
             th3.start()
         if save:
             print('start save')
             th2 = threading.Thread(target = saver,args = (DATALENGTH, feature_queue) )
             th2.start()
+        if transfer:
+            print('start save')
+            th6 = threading.Thread(target = Transfer, args = (feature_queue))
+            th6.start()
         while True:
             server_socket.listen()
             client_socket, addr = None, None
@@ -222,10 +226,11 @@ def main(data_queue, feature_queue, save, model_path, predict):
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Radar data saver and predictor')
     parser.add_argument('-s','--save', action = 'store_true')
-    parser.add_argument('-p', '--predict', action='store_true')
+    parser.add_argument('-p', '--predict', action = 'store_true')
+    parser.add_argument('-t', '--transfer', action = 'store_true')
     args = parser.parse_args()
     data_queue = deque()
     feature_queue = deque()
     model_path = '/Users/joonghocho/Radar/Intelligent_Radar/gui/service_modules/model/branch_model'
-    main(data_queue, feature_queue, save = args.save, model_path = model_path, predict = args.predict)
+    main(data_queue, feature_queue, save = args.save, transfer = args.transfer, model_path = model_path, predict = args.predict)
     

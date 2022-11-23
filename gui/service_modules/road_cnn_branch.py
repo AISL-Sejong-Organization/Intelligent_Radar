@@ -171,6 +171,7 @@ def main(model, file_name, devices = ['/gpu:0', '/gpu:1']):
     seq_length = 90
     class_names = ['asphalt','bicycle','block','floor','ground']
     bound = 208
+    global maximum 
     maximum = np.max(np.abs(X))
     Split_X = dataSeperator(X)
     # Amp_X = np.abs(X) / maximum
@@ -223,21 +224,21 @@ def main(model, file_name, devices = ['/gpu:0', '/gpu:1']):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Radar data trainer')
     # parser.add_argument('-m','--model', action = 'store')
-    parser.add_argument('-p','--pre', action = 'store_true')
+    # parser.add_argument('-p','--pre', action = 'store_true')
     parser.add_argument('-n','--name', action = 'store')
-    parser.add_argument('-g', '--gpu', action = 'store')
-    parser.add_argumetn('-b', '--branch', action = 'store_true')
+    # parser.add_argument('-g', '--gpu', action = 'store')
+    # parser.add_argumetn('-b', '--branch', action = 'store_true')
     args = parser.parse_args()
-    gpus = tf.config.experimental.list_physical_devices('GPU')
     # gpus = tf.config.experimental.list_physical_devices('GPU')
-    # os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
-    if gpus:
-    # 텐서플로가 첫 번째 GPU에 1GB 메모리만 할당하도록 제한
-        try:
-            tf.config.experimental.set_visible_devices(gpus[int(args.gpu)], 'GPU')
-        except RuntimeError as e:
-            # 프로그램 시작시에 가상 장치가 설정되어야만 합니다
-            print(e)
+    # # gpus = tf.config.experimental.list_physical_devices('GPU')
+    # # os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+    # if gpus:
+    # # 텐서플로가 첫 번째 GPU에 1GB 메모리만 할당하도록 제한
+    #     try:
+    #         tf.config.experimental.set_visible_devices(gpus[int(args.gpu)], 'GPU')
+    #     except RuntimeError as e:
+    #         # 프로그램 시작시에 가상 장치가 설정되어야만 합니다
+    #         print(e)
     label2idx_Dict = {
                 'asphalt' : 0,
                 # 'bicycle' : 1,
